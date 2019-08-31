@@ -81,8 +81,13 @@ data Canonical =
 
 
 isKernel :: Name -> Bool
-isKernel (Name author _) =
-  author == elm || author == elm_explorations
+isKernel name =
+  if name == dummyName then
+    True
+  else
+    case name of
+      (Name author _) ->
+        author == mfeineis || author == elm || author == elm_explorations
 
 
 toChars :: Name -> String
@@ -191,6 +196,11 @@ elm_explorations :: Author
 elm_explorations =
   Utf8.fromChars "elm-explorations"
 
+
+{-# NOINLINE mfeineis #-}
+mfeineis :: Author
+mfeineis =
+  Utf8.fromChars "mfeineis"
 
 
 -- PACKAGE SUGGESTIONS

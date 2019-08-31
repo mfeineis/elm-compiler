@@ -30,6 +30,7 @@ import qualified Reporting.Doc as D
 import qualified Reporting.Render.Type as RT
 import qualified Reporting.Render.Type.Localizer as L
 
+import qualified Debug.Trace
 
 
 -- GENERATE
@@ -153,60 +154,66 @@ addGlobalHelp mode graph global state =
   let
     addDeps deps someState =
       Set.foldl' (addGlobal mode graph) someState deps
+
+    graphHasGlobal =
+      Map.member global graph
   in
-  case graph ! global of
-    Opt.Define expr deps ->
-      addStmt (addDeps deps state) (
-        var global (Expr.generate mode expr)
-      )
+  if not graphHasGlobal then
+    Debug.Trace.trace ("graph doesn't contain global") state
+  else
+    case graph ! global of
+      Opt.Define expr deps ->
+        addStmt (addDeps deps state) (
+          var global (Expr.generate mode expr)
+        )
 
-    Opt.DefineTailFunc argNames body deps ->
-      addStmt (addDeps deps state) (
-        let (Opt.Global _ name) = global in
-        var global (Expr.generateTailDef mode name argNames body)
-      )
+      Opt.DefineTailFunc argNames body deps ->
+        addStmt (addDeps deps state) (
+          let (Opt.Global _ name) = global in
+          var global (Expr.generateTailDef mode name argNames body)
+        )
 
-    Opt.Ctor index arity ->
-      addStmt state (
-        var global (Expr.generateCtor mode global index arity)
-      )
+      Opt.Ctor index arity ->
+        addStmt state (
+          var global (Expr.generateCtor mode global index arity)
+        )
 
-    Opt.Link linkedGlobal ->
-      addGlobal mode graph state linkedGlobal
+      Opt.Link linkedGlobal ->
+        addGlobal mode graph state linkedGlobal
 
-    Opt.Cycle names values functions deps ->
-      addStmt (addDeps deps state) (
-        generateCycle mode global names values functions
-      )
+      Opt.Cycle names values functions deps ->
+        addStmt (addDeps deps state) (
+          generateCycle mode global names values functions
+        )
 
-    Opt.Manager effectsType ->
-      generateManager mode graph global effectsType state
+      Opt.Manager effectsType ->
+        generateManager mode graph global effectsType state
 
-    Opt.Kernel chunks deps ->
-      if isDebugger global && not (Mode.isDebug mode) then
-        state
-      else
-        addKernel (addDeps deps state) (generateKernel mode chunks)
+      Opt.Kernel chunks deps ->
+        if isDebugger global && not (Mode.isDebug mode) then
+          state
+        else
+          addKernel (addDeps deps state) (generateKernel mode chunks)
 
-    Opt.Enum index ->
-      addStmt state (
-        generateEnum mode global index
-      )
+      Opt.Enum index ->
+        addStmt state (
+          generateEnum mode global index
+        )
 
-    Opt.Box ->
-      addStmt (addGlobal mode graph state identity) (
-        generateBox mode global
-      )
+      Opt.Box ->
+        addStmt (addGlobal mode graph state identity) (
+          generateBox mode global
+        )
 
-    Opt.PortIncoming decoder deps ->
-      addStmt (addDeps deps state) (
-        generatePort mode global "incomingPort" decoder
-      )
+      Opt.PortIncoming decoder deps ->
+        addStmt (addDeps deps state) (
+          generatePort mode global "incomingPort" decoder
+        )
 
-    Opt.PortOutgoing encoder deps ->
-      addStmt (addDeps deps state) (
-        generatePort mode global "outgoingPort" encoder
-      )
+      Opt.PortOutgoing encoder deps ->
+        addStmt (addDeps deps state) (
+          generatePort mode global "outgoingPort" encoder
+        )
 
 
 addStmt :: State -> JS.Stmt -> State

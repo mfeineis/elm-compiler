@@ -58,7 +58,7 @@ isKernel :: ProjectType -> Bool
 isKernel projectType =
   case projectType of
     Package pkg -> Pkg.isKernel pkg
-    Application -> False
+    Application -> True
 
 
 
